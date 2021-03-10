@@ -1,5 +1,11 @@
 <?php
-	
+	$callerName = $_POST["callerName"];
+	$contactNo = $_POST["contactNo"];
+	$locationOfIncident = $_POST["locationOfIncident"];
+	$typeOfIncident = $_POST["typeOfIncident"];
+	$descriptionOfIncident = $_POST["descriptionOfIncident"];
+
+
 	require "db.php";
 	$conn = new mysqli(DB_SERVER,DB_USER,DB_PASSWORD,DB_DATABASE);
 	$sql = "SELECT patrolcar.patrolcar_id,patrolcar_status.patrolcar_status_desc FROM `patrolcar` INNER JOIN patrolcar_status ON patrolcar.patrolcar_status_id = patrolcar_status.patrolcar_status_id";
@@ -8,7 +14,7 @@
 	while($row = $result->fetch_assoc()){
 		$id = $row["patrolcar_id"];
 		$status = $row["patrolcar_status_desc"];
-		$car = ["id"=>$id, "status"=>$status];
+		$car = ["id" => $id, "status" => $status];
 		array_push($cars,$car);
 	}
 	$conn->close();
@@ -42,8 +48,41 @@
 		$typeOfIncident = $_POST["typeOfIncident"];
 		$descriptionOfIncident = $_POST["descriptionOfIncident"];
 		
-		$sql = "INSERT INTO `incident`( `caller_name`, `phone_number`, `incident_type_id`, `incident_location`, `incident_desc`, `incident_status_id`, `time_called`) VALUES ('" . $callerName . "','" . $contactNo . "','" . $locationOfIncident . "','" . $typeOfIncident . "','" . $descriptionOfIncident . "','" . $incidentStatus . "',now())";
-		echo $sql;
+		$sql = "INSERT INTO `incident`( `caller_name`, `phone_number`, `incident_type_id`, `incident_location`, `incident_desc`, `incident_status_id`, `time_called`) VALUES ('" . $callerName . "','" . $contactNo . "','" . $typeOfIncident . "','" . $locationOfIncident . "','" . $descriptionOfIncident . "','" . $incidentStatus . "',now())";
+		//echo $sql;
+		$conn = new mysqli(DB_SERVER,DB_USER,DB_PASSWORD,DB_DATABASE);
+		$insertIncidentSuccess = $conn->query($sql);
+		if($insertIncidentSuccess == false) {
+			echo "Error:" . $sql . "<br>" . $conn->error;
+		}
+		$incidentId = mysqli_insert_id($conn);
+		//echo "<br>new incident id: " . $incidentId;
+		$updateSuccess = false;
+		$innsertDispatchSuccess = false;
+		
+		foreach($patrolcarDispatched as $eachCarId) {
+			//echo $eachCarId . "<br>";
+			
+			$sql ="UPDATE `patrolcar` SET `patrolcar_status_id`=1 WHERE `patrolcar_id`='" . $eachCarId . "'";
+			$updateSuccess = $conn->query($sql);
+			
+			if($updateSuccess == false) {
+				echo "Error:" . $sql . "<br>" . $conn->error;
+			}
+			
+			$sql = "INSERT INTO `dispatch`(`incident_id`, `patorlcar_id`, `time_dispatched`) VALUES (" . $incidentId . ",'" . $eachCarId . "',now())";
+			$innsertDispatchSuccess = $conn->query($sql);
+			
+			if($innsertDispatchSuccess == false) {
+				echo "Error:" . $sql . "<br>" . $conn->error;
+			}
+		}
+		$conn->close();
+		
+		if($innsertDispatchSuccess == true && $updateSuccess == true &&
+		  $innsertDispatchSuccess == true) {
+			header("location: logcall.php");
+		}
 	}
 ?>
 <!doctype html>
@@ -128,7 +167,10 @@
 									"<td>" . $car["id"] . "</td>" .
 									"<td>" . $car["status"] . "</td>" .
 									"<td>" .
-										"<input type=\"checkbox\" "." name=\"cbCarSelection[]\">" .
+										"<input type=\"checkbox\" ".
+										"value=\"" . $car["id"] . "\" " .
+										"name=\"cbCarSelection[]\">" .
+										
 									"</td>" .
 								"</tr>";
 						}

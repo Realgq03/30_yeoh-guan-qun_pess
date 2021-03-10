@@ -7,7 +7,7 @@
 	while($row = $result->fetch_assoc()){
 		$id = $row["incident_type_id"];
 		$type = $row["incident_type_desc"];
-		$incidentType = ["id"=>$id, "type"=>$type];
+		$incidentType = ["id" => $id, "type" => $type];
 		array_push($incidentTypes,$incidentType);
 	}
 	$conn->close();
